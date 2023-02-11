@@ -1,0 +1,15 @@
+LICENSE
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+primesense/__init__.py
+primesense/_nite2.py
+primesense/_openni2.py
+primesense/nite2.py
+primesense/openni2.py
+primesense/utils.py
+primesense.egg-info/PKG-INFO
+primesense.egg-info/SOURCES.txt
+primesense.egg-info/dependency_links.txt
+primesense.egg-info/top_level.txt

@@ -1,0 +1,6 @@
+venv\*
+.mypy_cache\*
+.pytest_cache\*
+cameraData\*
+configs\*
+*__pycache__*
