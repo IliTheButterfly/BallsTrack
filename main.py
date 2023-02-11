@@ -5,23 +5,20 @@ from time import sleep
 import time
 from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
 from camlib import *
+from camlib.cameraSettings import CamSettings
 from camlib.multiCamera import MultiCam, startCams
 from camlib.nik2Camera import NIK2Camera
-from tracklib.aruco import ArucoParams
 import cv2
 import numpy as np
 import multiprocessing as mp
-from tracklib.utils import CamSettings, blur_edge, deblur, deblurMarker, defocus_kernel, differenceFinder, motion_kernel, track3D, udeblurMarker
+from tracklib.utils import blur_edge, deblur, defocus_kernel, differenceFinder, motion_kernel
 
-
-# board = cv2.aruco.GridBoard((6,6), 0.06, 0.01,dictionary)
 
 def stall():
     k = cv2.waitKey(1)
     if k == ord('q'):
         return False
     return True
-
 
 
 def openCam(cam: str):
@@ -62,44 +59,6 @@ def exitApp(*args:str):
 def showHelp(*args:str):
     for cmd in cmds:
         print(f"{cmd.name} -> {cmd.desc}")
-
-@command("track", "track <id> <cam name> - Start track demo")
-def mainTrack(*args:str):
-    if len(args) != 2:
-        print("Usage: track <id> <cam name>")
-        return
-    try:
-        device = int(args[0])
-    except ValueError:
-        print("Invalid argument")
-        print("Usage: track <id> <cam name>")
-        return
-    try:
-        camera_matrix = np.load(f"cameraData\\{args[1]}\\camera_matrix.npy")
-        dist_coeffs = np.load(f"cameraData\\{args[1]}\\dist_coeffs.npy")
-    except Exception as e:
-        print(e)
-        print("Invalid camera name")
-
-    params = ArucoParams(cv2.aruco.DICT_6X6_250)
-
-
-    with WebCamera(device) as cam:
-        if not cam.isOpened:
-            print("Cam did not open")
-            return
-        cv2.namedWindow("Cam1")
-
-        while stall():
-            ret, img = cam.read()
-            if not ret:
-                continue
-            if img is not None:
-                di = img.copy()
-                track3D(di, params, camera_matrix, dist_coeffs)
-                cv2.imshow("Cam1", di)
-    cv2.destroyAllWindows()
-
 
 def getCalib(cam, objp, objpoints, imgpoints, pattern_size, criteria):
     count = 0
@@ -314,76 +273,6 @@ def bdeblurMain(*args:str):
         if ch == ord(' '):
             defocus = not defocus
             update(None)
-
-@command("track2", "track2 <id> <cam name> - Track and deblur motion")
-def track2Main(*args:str):
-    if len(args) != 2:
-        print("Usage: track <id> <cam name>")
-        return
-    try:
-        device = int(args[0])
-    except ValueError:
-        print("Invalid argument")
-        print("Usage: track <id> <cam name>")
-        return
-    try:
-        camera_matrix = np.load(f"cameraData\\{args[1]}\\camera_matrix.npy")
-        dist_coeffs = np.load(f"cameraData\\{args[1]}\\dist_coeffs.npy")
-    except Exception as e:
-        print(e)
-        print("Invalid camera name")
-        return
-
-    params = ArucoParams(cv2.aruco.DICT_6X6_250)
-
-    with WebCamera(device) as cam:
-        cam._cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-
-        cam._cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-        cam.set(cv2.CAP_PROP_EXPOSURE, -2)
-        processor = deblurMarker(cam, camera_matrix, dist_coeffs, params)
-        if not cam.isOpened:
-            print("Cam did not open")
-            return
-        processor.run()
-
-        
-    cv2.destroyAllWindows()
-
-@command("utrack2", "utrack2 <id> <cam name> - Track and deblur motion")
-def utrack2Main(*args:str):
-    if len(args) != 2:
-        print("Usage: utrack2 <id> <cam name>")
-        return
-    try:
-        device = int(args[0])
-    except ValueError:
-        print("Invalid argument")
-        print("Usage: utrack2 <id> <cam name>")
-        return
-    try:
-        camera_matrix = np.load(f"cameraData\\{args[1]}\\camera_matrix.npy")
-        dist_coeffs = np.load(f"cameraData\\{args[1]}\\dist_coeffs.npy")
-    except Exception as e:
-        print(e)
-        print("Invalid camera name")
-        return
-
-    params = ArucoParams(cv2.aruco.DICT_6X6_250)
-
-    with WebCamera(device) as cam:
-        cam._cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-
-        cam._cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-        cam.set(cv2.CAP_PROP_EXPOSURE, 150)
-        processor = udeblurMarker(cam, camera_matrix, dist_coeffs, params)
-        if not cam.isOpened:
-            print("Cam did not open")
-            return
-        processor.run()
-
-        
-    cv2.destroyAllWindows()
 
 @command("diff", "diff <cam> - Displays a difference image from cleanplate")
 def diffMain(*args:str):

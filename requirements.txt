@@ -1,0 +1,5 @@
+numpy==1.24.2
+opencv-python==4.7.0.68
+primesense==2.2.0.30.post5
+pywin32==305
+typing_extensions==4.4.0
