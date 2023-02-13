@@ -824,7 +824,7 @@ def testMulitMain(*args:str):
     cv2.createTrackbar("Min inertia", "Params", int(1), 100, updateParams)
     
     def readcb(frames, datas):
-        k = cv2.waitKey(16)
+        k = cv2.waitKey(1)
         
         if k == 27:
             return False
