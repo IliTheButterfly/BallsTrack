@@ -346,7 +346,9 @@ class SceneSolver:
     def run(self):
         lastPoints = [[] for _ in range(len(self.cams))]
         nextCap = -1
-        with self.xr as xr:
+        # with self.xr as xr:
+        if True:
+            # xr.update_hmd_pose()
             while True:
                 for i in range(len(self.cams)):
                     ret, img = self.cams[i].read()

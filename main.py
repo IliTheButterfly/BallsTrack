@@ -7,6 +7,7 @@ from camlib.cameraSettings import CamSettings
 import cv2
 import numpy as np
 from cfglib import CamCFG, SceneCFG
+from tracklib.xrtrack import xrutils
 from tracklib.triangulation import SceneSolver
 from benchmark import *
 
@@ -536,9 +537,13 @@ def vrtrackMain(*args:str):
         except EOFError:
             return
 
+    # Create the config manager
     scfg = SceneCFG(res)
+
+    # Uppon __exit__ this will save the config
     with scfg as cfg:
         
+        # Safely open all cameras loaded from config
         with Contexts([c.asWebCam() for c in cfg.cameras]) as cams:
             solver = SceneSolver(cams)
 
@@ -552,20 +557,24 @@ def vrtrackMain(*args:str):
                 for cam, data in zip(cfg.cameras, solver.datas.cams):
                     cam.threshold = data.thresh
                 cfg.params.update(solver.datas.params)
-            
             scfg.savecb = savecb
             
+            # Define callback for params trackbar
             def updateParam(paramName:str, scale:float):
                 def up(val):
                     setattr(solver.datas.params, paramName, val*scale)
                 return up
             
+            # Create Params window
             cv2.namedWindow("Params")
             
+            # Define callback for threshold updates
             def createFunc(id:int):
                 def updateThresh(val):
                     solver.datas.cams[id].thresh = val
                 return updateThresh
+            
+            # Create camera windows
             for i in range(len(solver.datas.cams)):
                 w = f"Camera {i}"
                 cv2.namedWindow(w)
@@ -573,16 +582,23 @@ def vrtrackMain(*args:str):
                 f = createFunc(i)
                 cv2.createTrackbar("Thresh", f"Camera {i}", int(solver.datas.cams[i].thresh), 255, f)
 
+            # Define function to create trackbars
             def createTrackbar(name:str, window:str):
                 min, max, count = getattr(solver.datas.params, f'{name.removeprefix("min").removeprefix("max")}_info')
                 default = getattr(cfg.params, name)
                 cv2.createTrackbar(name, window, int(default/((max-min)/count)), count, updateParam(name, (max-min)/count))
             
+            # Create trackbars
             for k in dir(solver.datas.params):
                 if k.startswith('min') or k.startswith('max'):
                     createTrackbar(k, 'Params')
-
+            # Run the solver
             solver.run()
+
+@command('testvr', "Test getting info for openvr")
+def testvrMain(*args:str):
+    with xrutils() as xr:
+        pass
 
 if __name__ == "__main__":
     run()
