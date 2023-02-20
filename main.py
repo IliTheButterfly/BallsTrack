@@ -2,6 +2,8 @@ from os import mkdir
 from pathlib import Path
 from time import sleep, time
 from typing import Any, Callable, Iterable, List, Union
+
+import openvr
 from camlib import *
 from camlib.cameraSettings import CamSettings
 import cv2
@@ -598,7 +600,47 @@ def vrtrackMain(*args:str):
 @command('testvr', "Test getting info for openvr")
 def testvrMain(*args:str):
     with xrutils() as xr:
-        pass
+        cv2.namedWindow("Debug")
+        devIndex = 0
+        count = openvr.k_unMaxTrackedDeviceCount
+        xr.refreshDevices()
+        while True:
+            k = cv2.waitKey(1)
+            if k == 27:
+                break
+            if k == ord('s'): # Previous device
+                devIndex = devIndex - 1 if devIndex > 0 else count - 1
+            if k == ord('w'): # Next device
+                devIndex = (devIndex + 1) % count
+            xr.update()
+            img = np.zeros((640,320), np.uint8) + 255
+            # dev = xr.controllers[devIndex]
+            # if dev:
+            #     x = round(dev.pos[0][3], 6)
+            #     y = round(dev.pos[1][3], 6)
+            #     z = round(dev.pos[2][3], 6)
+            #     for i, v in enumerate({'index':devIndex, 'id':dev.id, 'x':x,'y':y,'z':z}.items()):
+            #         n,v = v
+            #         p = (10, 25 * i + 30)
+            #         cv2.putText(img, f"{n}: {v}", p, cv2.FONT_HERSHEY_SIMPLEX, 1, (0))
+            pos = openvr.VRSystem().getDeviceToAbsoluteTrackingPose(openvr.TrackingUniverseStanding, 0.0, devIndex).contents.mDeviceToAbsoluteTracking
+            dispData = {}
+
+            
+
+            x = round(pos[0][3], 6)
+            y = round(pos[1][3], 6)
+            z = round(pos[2][3], 6)
+            dispData = {'index':devIndex, 'x':x,'y':y,'z':z}
+            for i, row in enumerate(pos):
+                for ii, c in enumerate(row):
+                    dispData[f'({i},{ii})'] = c
+            for i, v in enumerate(dispData.items()):
+                n,v = v
+                p = (10, 25 * i + 30)
+                cv2.putText(img, f"{n}: {v}", p, cv2.FONT_HERSHEY_SIMPLEX, 1, (0))
+            cv2.imshow("Debug", img)
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     run()

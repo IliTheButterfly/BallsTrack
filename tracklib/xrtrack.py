@@ -1,15 +1,51 @@
+from typing import List
 import openvr
+
+class Controller:
+    def __init__(self, id):
+        self.id = id
+        self.pos = None
+        self.trigger = False
+        self.grip = False
+        self.axies = []
+        self.dev = None
+        
+    def update(self):
+
+        if self.dev:
+            openvr.VRSystem().getDeviceToAbsoluteTrackingPose(openvr.TrackingUniverseStanding, 0.0, self.id, self.dev)
+        else:
+            self.dev = openvr.VRSystem().getDeviceToAbsoluteTrackingPose(openvr.TrackingUniverseStanding, 0.0, self.id, None)
+        self.pos = self.dev.contents.mDeviceToAbsoluteTracking
+        _, controller_state = openvr.VRSystem().getControllerState(self.id)
+
+        # check the state of the trigger button
+        self.state = controller_state
+        self.axies = [axis for axis in self.state.rAxis]
+        # self.trigger = controller_state.ulButtonPressed & openvr.Butto.ButtonMaskFromId(openvr.k_EButton_SteamVR_Trigger)
+        # self.grip = controller_state.ulButtonPressed & openvr.ButtonMaskFromId(openvr.k_EButton_Grip)
+
+    def __str__(self):
+        s = f"id: {self.id} | trig: {int(self.trigger)} | Grip: {int(self.grip)}\n  "
+        for i, a in enumerate(self.axies):
+            s += f"{i}: ({a.x},{a.y}) | "
+        return s
 
 class xrutils:
     def __init__(self):
         self.hmd = None
-        self.dev_class_char = dict()
+        self.leftController = None
+        self.rightController = None
+        self.headset = None
+        self.controllers:List[Controller] = []
 
     def __enter__(self):
         for _ in range(10):
             try:
-                self.hmd = openvr.init(openvr.VRApplication_Scene)
+                self.hmd = openvr.init(openvr.VRApplication_Other)
                 print("Successfully connected to SteamVR")
+                self.refreshDevices()
+                break
             except openvr.OpenVRError:
                 print("Failed to open SteamVR retrying")
         return self
@@ -17,51 +53,23 @@ class xrutils:
     def __exit__(self, type, value, traceback):
         openvr.shutdown()
 
-    def process_vr_event(self, event):
-        if event.eventType == openvr.VREvent_TrackedDeviceDeactivated:
-            print(f'Device {event.trackedDeviceIndex} detached')
-        elif event.eventType == openvr.VREvent_TrackedDeviceUpdated:
-            print(f'Device {event.trackedDeviceIndex} updated')
-
-    def handle_input(self):
-        # Note: Key events are handled by glfw in key_callback
-        # Process SteamVR events
-        event = openvr.VREvent_t()
-        has_events = True
-        while has_events:
-            has_events = self.hmd.pollNextEvent(event)
-            self.process_vr_event(event)
-        # Process SteamVR action state
-
-    def update_hmd_pose(self):
-        if not self.hmd:
-            return
-        self.poses = self.hmd.getDeviceToAbsoluteTrackingPose(
-        openvr.TrackingUniverseStanding,
-        0,
-        openvr.k_unMaxTrackedDeviceCount)
-        self.valid_pose_count = 0
-        self.pose_classes = ''
-        for nDevice, pose in enumerate(self.poses):
-            if pose.bPoseIsValid:
-                self.valid_pose_count += 1
-                if nDevice not in self.dev_class_char:
-                    c = self.hmd.getTrackedDeviceClass(nDevice)
-                    if c == openvr.TrackedDeviceClass_Controller:
-                        self.dev_class_char[nDevice] = 'C'
-                        self.pose_classes += self.dev_class_char[nDevice]
-                        print(self.dev_class_char[nDevice])
-                    elif c == openvr.TrackedDeviceClass_HMD:
-                        self.dev_class_char[nDevice] = 'H'
-                        self.pose_classes += self.dev_class_char[nDevice]
-                        print(self.dev_class_char[nDevice])
-                    # elif c == openvr.TrackedDeviceClass_Invalid:
-                    #     self.dev_class_char[nDevice] = 'I'
-                    #     continue
-                    # elif c == openvr.TrackedDeviceClass_GenericTracker:
-                    #     self.dev_class_char[nDevice] = 'G'
-                    # elif c == openvr.TrackedDeviceClass_TrackingReference:
-                    #     self.dev_class_char[nDevice] = 'T'
-                    # else:
-                    #     self.dev_class_char[nDevice] = '?'
-        print("Done updating poses")
+    def refreshDevices(self):
+        # get device ids
+        self.controllers = []
+        for i in range(openvr.k_unMaxTrackedDeviceCount):
+            device_class = openvr.VRSystem().getTrackedDeviceClass(i)
+            if device_class != openvr.TrackedDeviceClass_Invalid:
+                role = openvr.VRSystem().getControllerRoleForTrackedDeviceIndex(i)
+                self.controllers.append(Controller(i))
+                if role == openvr.TrackedControllerRole_LeftHand:
+                    self.leftController = Controller(i)
+                elif role == openvr.TrackedControllerRole_RightHand:
+                    self.rightController = Controller(i)
+                elif role == openvr.TrackedDeviceClass_HMD:
+                    self.headset = Controller(i)
+    
+    def update(self):
+        for c in self.controllers:
+            # c:Controller
+            if c:
+                c.update()

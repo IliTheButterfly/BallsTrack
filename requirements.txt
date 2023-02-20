@@ -1,10 +1,6 @@
+dogma.py==0.0.1
+glfw==2.5.6
 numpy==1.23.5
 opencv-python==4.7.0.68
-pywin32==305
+openvr==1.14.1501
 typing_extensions==4.4.0
-pygame==2.1.2
-colorama==0.3.9
-openvr==1.0.1301
-python-osc==1.6.4
-reprint==0.5.1
-six==1.11.0
