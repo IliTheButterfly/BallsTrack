@@ -27,6 +27,7 @@ class WebCamera(Camera):
 
         self.location = location
         self._cam:cv2.VideoCapture = None
+        self._size = None
 
     @override
     def grab(self) -> bool:
@@ -38,19 +39,25 @@ class WebCamera(Camera):
     def retrieve(self) -> Tuple[bool, Union[cv2.Mat, None]]:
         if self._cam is None:
             return False, None
-        return self._cam.retrieve()
+        r, img = self._cam.retrieve()
+        if not self._size and r:
+            self._size = tuple(img.shape[:2])
+        return r, img
 
     @override
     def read(self) -> Tuple[bool, Union[cv2.Mat, None]]:
         if self._cam is None:
             return False, None
-        return self._cam.read()
+        r, img = self._cam.read()
+        if not self._size and r:
+            self._size = tuple(img.shape[:2])
+        return r, img
 
     @property
     def size(self) -> Tuple[int, int]:
-        if self._cam is None:
+        if self._size is None:
             return (0,0)
-        return self._cam.get_size()
+        return self._size
     
     @property
     def isOpened(self) -> bool:

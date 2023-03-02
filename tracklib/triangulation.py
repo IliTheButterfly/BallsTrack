@@ -1,4 +1,5 @@
 from multiprocessing.managers import BaseManager
+from os import sep
 from time import time
 from typing import List
 import numpy as np
@@ -282,7 +283,7 @@ class SceneSolver:
         self.xr = xrutils()
 
     def updatePs(self):
-        self.Ps = [np.concatenate((np.concatenate((R, T), axis=1), [0, 0, 0, 1]), axis=0) for R, T in zip(self.Rs, self.Ts)]
+        self.Ps = [np.concatenate((np.concatenate((R, T), axis=1), np.array([[0, 0, 0, 1]])), axis=0) for R, T in zip(self.Rs, self.Ts)]
 
     def appendCalibration(self, vrPoint, camPoints):
         self.vrPoints.append(vrPoint)
@@ -298,10 +299,12 @@ class SceneSolver:
         for i in range(len(self.cams)):
             # Compute the intrinsic parameters of the camera
             cam = self.cams[i]
-            ret, K, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(self.vrPoints, self.camPoints[i], cam.size, cam.camera_matrix, cam.dist_coeffs)
+            # ret, K, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(None, None, cam.size, cam.camera_matrix, cam.dist_coeffs)
             
             # Compute the extrinsic parameters of the camera
-            ret, rvec, tvec = cv2.solvePnP(self.vrPoints, self.camPoints[i], K, distCoeffs)
+            vrPoints = cv2.Mat(np.array(self.vrPoints, np.float64))
+            camPoints = cv2.Mat(np.array(self.camPoints[i], np.float64))[:,0,:]
+            ret, rvec, tvec = cv2.solvePnP(vrPoints, camPoints, cam.camera_matrix, cam.dist_coeffs)
             
             # Convert the rotation vector to a rotation matrix
             R, _ = cv2.Rodrigues(rvec)
@@ -311,6 +314,7 @@ class SceneSolver:
             self.Ts[i] = tvec
         self.updatePs()
         self.calibrated = True
+        np.savetxt(f"configs{sep}last_calib", self.Ps)
 
     # Triangulate the 3D position of the markers
     def triangulate(self, ptsList):
@@ -346,15 +350,24 @@ class SceneSolver:
     def run(self):
         lastPoints = [[] for _ in range(len(self.cams))]
         nextCap = -1
-        # with self.xr as xr:
-        if True:
+        with self.xr as xr:
+        # if True:
             # xr.update_hmd_pose()
+            xr.refreshDevices()
+            triggerState = False
+            triggerPressed = False
+            lasttriggerState = False
             while True:
+                xr.update()
+                success = True
                 for i in range(len(self.cams)):
                     ret, img = self.cams[i].read()
                     if not ret:
+                        success = False
                         continue
                     points, img = self.getPosition(img, self.datas.cams[i])
+                    if len(points) == 0:
+                        success = False
                     lastPoints[i] = points
                     (h, w) = img.shape[:2]
                     if points is not None:
@@ -378,14 +391,26 @@ class SceneSolver:
                     print("Appending point in 5 sec")
                     nextCap = time() + 5
 
-                if nextCap != -1 and nextCap < time():
+                triggerState = xr.leftController.trigger or xr.rightController.trigger
+                triggerPressed = triggerState and not lasttriggerState
+                lasttriggerState = triggerState
+                if (nextCap != -1 and nextCap < time()) or triggerPressed:
+                    if not success:
+                        print("Not all cams can see this point, point rejected")
+                        continue
                     nextCap = -1
-                    self.appendCalibration([0,0,0], lastPoints)
+                    pos = xr.leftController.pos if xr.leftController.trigger else xr.rightController.pos
+                    self.appendCalibration(pos, lastPoints)
                     print("Appended calibration")
+                    print(f"Provide at least {max(0, 6 - len(self.vrPoints))} points")
                 
                 if k == ord('d'):
+                    if len(self.vrPoints) < 6:
+                        print(f"Needs at least {max(0, 6 - len(self.vrPoints))} more points before calibrating")
+                        continue
                     print("Calibrating")
                     self.calibrate()
+                    print("Done!")
                     
         print("Stopping")
         self.datas.stop()

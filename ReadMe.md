@@ -22,4 +22,41 @@ But esentially, this is how the configuration would work:
 4. Put on the rest of your BallMarkers and have fun!
 
 
+## Setup
+Please use some venv or environmnent manager like Anaconda.
+**This project was tested using venv on Windows 10 and the instructions are written in consequence.**
+```sh
+git clone https://github.com/Civelier/BallsTrack.git
+python3 -m venv .\\venv
+.\\venv\\Scripts\\Activate.ps1
+pip install -r requirements.txt
+```
 
+If you are using vs code, then you should be done with the setup. The `.\\.vscode` folder contains the launch config and the test config.
+
+## Running
+Uppon running main.py, you will be prompted by this:
+```
+exit -> Quit app
+help -> Show this
+calib -> calib <id> - Calibrate camera values
+point -> point <cam> - Point finder
+cfg -> cfg <cam> - Camera config
+mkcfg -> Make a camera configuration
+vrtrack -> vrtrack - Track using specific cams, and allow calibration using OSC
+testvr -> Test getting info for openvr
+Enter command:
+```
+
+### exit
+Need I say more?
+
+### help
+Shows help.
+
+### calib
+Calib is a function that you need to run for every new camera in your system. It also requires you having a printed checkboard pattern found [here](https://github.com/Civelier/BallsTrack/blob/master/calibration_images/pattern.png).
+
+Print it out and lay it on a flat surface (eg: tape it to a piece of cardboard). 
+
+You will have to then take a series of images of it being detected as show like so:
