@@ -295,7 +295,7 @@ def pointMain(*args:str):
         detector = cv2.SimpleBlobDetector_create(params)
 
         while True:
-            start = time.time()
+            start = time()
             k = cv2.waitKey(1)
             if k == 27:
                 break
@@ -323,7 +323,7 @@ def pointMain(*args:str):
             i += 1
 
 
-            end = time.time()
+            end = time()
             delta = end - start
             deltas[i%30] = 1/delta
             if i % 30 == 0:
