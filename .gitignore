@@ -4,3 +4,4 @@ venv/
 cameraData/*
 configs/*
 *__pycache__*
+*.blend*
