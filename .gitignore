@@ -5,3 +5,4 @@ cameraData/*
 configs/*
 *__pycache__*
 *.blend*
+out/**
